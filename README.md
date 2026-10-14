@@ -10,6 +10,7 @@ Personal modern 3D portfolio website of **Farhan Saefulah, S.T.** — Fullstack 
 
 ## ✨ Features & Highlights
 
+- 🤖 **Farhan AI Assistant (Intelligent Portfolio Chatbot)**: Built-in context-aware AI chatbot with zero-latency response engine, synthetic Web Audio chime, quick-prompt chips, and direct interactive action triggers (scrolling to sections, downloading CV, or opening WhatsApp).
 - 🌊 **ReactBits WebGL Fluid Splash Cursor**: High-performance, GPU-accelerated fluid dynamic simulation cursor with blooming colors and curling vortex ripples.
 - 🧊 **3D Interactive Physics & Specular Glare**: Real physical 3D perspective tilt (`preserve-3d`), dynamic multi-depth parallax layers (`translateZ`), and mouse-tracking specular light sheen on cards.
 - 🎬 **Canvas Scroll Animation**: Smooth frame-by-frame canvas sequence animation synchronized with user scroll.

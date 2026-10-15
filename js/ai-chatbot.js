@@ -1,14 +1,7 @@
-/**
- * ==========================================================================
- * FARHAN AI ASSISTANT - INTELLIGENT PORTFOLIO CHATBOT ENGINE
- * Context-Aware NLP, Fast Streaming Response, Interactive Action Triggers
- * ==========================================================================
- */
 
 (function () {
   'use strict';
 
-  // --- KNOWLEDGE BASE FARHAN SAEFULAH ---
   const KNOWLEDGE_BASE = {
     profile: {
       name: "Farhan Saefulah, S.T.",
@@ -177,6 +170,9 @@
     widget.className = 'ai-chatbot-widget';
 
     widget.innerHTML = `
+      <!-- Backdrop Overlay for Mobile -->
+      <div class="ai-chat-backdrop" id="ai-chat-backdrop" aria-hidden="true"></div>
+
       <!-- Tooltip Bubble -->
       <div class="ai-launcher-tooltip" id="ai-launcher-tooltip" title="Klik untuk tanya Farhan AI">
         <span class="ai-tooltip-sparkle">✨</span>
@@ -202,6 +198,9 @@
 
       <!-- Chat Window Modal -->
       <div class="ai-chat-window" id="ai-chat-window" role="dialog" aria-label="Jendela Chat Farhan AI">
+        <!-- Mobile Grabber -->
+        <div class="ai-mobile-grabber" aria-hidden="true"></div>
+
         <!-- Header -->
         <div class="ai-chat-header">
           <div class="ai-header-left">
@@ -341,7 +340,7 @@
         text: `💍 **OurMoment - Next-Gen Digital Wedding Invitation** adalah salah satu karya unggulan Farhan Saefulah!\n\n✨ **Fitur-Fitur Premium yang Dimiliki:**\n• **RSVP & Konfirmasi Tamu:** Tamu bisa mengkonfirmasi kehadiran dan jumlah tamu secara instan.\n• **Background Music Player:** Musik otomatis yang romantis dengan kontrol pause/play estetik.\n• **Live Countdown Timer:** Penghitung mundur hari H pernikahan secara presisi.\n• **Navigasi Google Maps:** Peta lokasi resepsi dan akad yang terhubung langsung ke Google Maps / Waze.\n• **Galeri Foto Interaktif:** Tampilan foto prewedding responsif (*grid view & full slider*).\n• **Amplop & Hadiah Digital:** Fitur transfer cashless (Nomor Rekening Bank & QRIS) untuk kemudahan tamu memberi kado.\n• **Buku Tamu & Ucapan Doa:** Tamu dapat mengirimkan ucapan selamat secara langsung di website.\n\n*Tertarik membuat undangan digital seperti ini untuk acara Anda? Farhan siap membuatkannya dengan desain kustom dan harga sangat ramah!*`,
         actions: [
           { text: "👀 Lihat Kartu Undangan di Web", targetId: "projects" },
-          { text: "💬 Tanya Jasa Undangan via WhatsApp", link: "https://wa.me/6285721869814?text=Halo%20Farhan,%20saya%20tertarik%20dengan%20Jasa%20Web%20Undangan%20Digital%20OurMoment", style: "orange" },
+          { text: "💬 Tanya Jasa Undangan via WhatsApp", link: "https://wa.me/628999401803?text=Halo%20Farhan,%20saya%20tertarik%20dengan%20Jasa%20Web%20Undangan%20Digital%20OurMoment", style: "orange" },
           { text: "💰 Cek Estimasi Biaya", query: "Berapa biaya pembuatan undangan digital?" }
         ]
       };
@@ -490,6 +489,8 @@
       }
     }
 
+    const backdrop = document.getElementById('ai-chat-backdrop');
+
     // Toggle Chat Window
     function toggleChat(forceOpen) {
       if (typeof forceOpen === 'boolean') {
@@ -501,17 +502,22 @@
       if (isChatOpen) {
         widget.classList.add('is-open');
         chatWindow.classList.add('is-active');
+        document.body.classList.add('ai-chat-open');
         if (tooltip) tooltip.style.display = 'none';
         if (badge) badge.style.display = 'none';
         setTimeout(() => chatInput && chatInput.focus(), 300);
       } else {
         widget.classList.remove('is-open');
         chatWindow.classList.remove('is-active');
+        document.body.classList.remove('ai-chat-open');
       }
     }
 
     launcherBtn.addEventListener('click', () => toggleChat());
     closeBtn.addEventListener('click', () => toggleChat(false));
+    if (backdrop) {
+      backdrop.addEventListener('click', () => toggleChat(false));
+    }
     
     if (tooltip) {
       tooltip.addEventListener('click', (e) => {

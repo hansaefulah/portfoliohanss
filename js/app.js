@@ -21,6 +21,9 @@
   const loaderBar = document.getElementById('loader-bar');
   const loaderPct = document.getElementById('loader-pct');
   const loaderCount = document.getElementById('loader-count');
+  const splashStatusText = document.getElementById('splash-status-text');
+  const splashSkipBtn = document.getElementById('splash-skip-btn');
+  const splashParticleCanvas = document.getElementById('splash-particle-canvas');
 
   // Mobile Menu Elements
   const hamburger = document.getElementById('hamburger');
@@ -146,13 +149,120 @@
     }
   }
 
+  let isPreloaderDismissed = false;
+  let splashParticleRaf = null;
+
+  function updateSplashStatus(pct) {
+    if (!splashStatusText) return;
+    if (pct < 20) {
+      splashStatusText.textContent = 'INITIALIZING QUANTUM ASSETS...';
+    } else if (pct < 45) {
+      splashStatusText.textContent = 'STREAMING 240-FRAME SCROLL SEQUENCE...';
+    } else if (pct < 70) {
+      splashStatusText.textContent = 'SYNCHRONIZING REACTBITS FLUID ENGINE...';
+    } else if (pct < 90) {
+      splashStatusText.textContent = 'CALIBRATING FROSTED GLASS INTERFACES...';
+    } else if (pct < 100) {
+      splashStatusText.textContent = 'FINALIZING SYSTEM TELEMETRY...';
+    } else {
+      splashStatusText.textContent = 'SYSTEM ONLINE // ACCESS GRANTED';
+      splashStatusText.style.color = '#34d399';
+    }
+  }
+
+  function initSplashParticles() {
+    if (!splashParticleCanvas) return;
+    const sCtx = splashParticleCanvas.getContext('2d');
+    if (!sCtx) return;
+
+    let sWidth = (splashParticleCanvas.width = window.innerWidth);
+    let sHeight = (splashParticleCanvas.height = window.innerHeight);
+
+    window.addEventListener('resize', () => {
+      if (!preloader || preloader.style.display === 'none') return;
+      sWidth = splashParticleCanvas.width = window.innerWidth;
+      sHeight = splashParticleCanvas.height = window.innerHeight;
+    }, { passive: true });
+
+    const count = Math.min(36, Math.floor(window.innerWidth / 32));
+    const particles = [];
+    const colors = ['#ff5722', '#ff8a65', '#6366f1', '#06b6d4', '#cbd5e1'];
+
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: Math.random() * sWidth,
+        y: Math.random() * sHeight,
+        vx: (Math.random() - 0.5) * 0.75,
+        vy: (Math.random() - 0.5) * 0.75,
+        radius: Math.random() * 2 + 1,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: Math.random() * 0.5 + 0.35
+      });
+    }
+
+    function renderParticles() {
+      if (!preloader || preloader.style.display === 'none') {
+        if (splashParticleRaf) cancelAnimationFrame(splashParticleRaf);
+        return;
+      }
+
+      sCtx.clearRect(0, 0, sWidth, sHeight);
+
+      // Connect filaments
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 90) {
+            const lineAlpha = (1 - dist / 90) * 0.2;
+            sCtx.strokeStyle = `rgba(99, 102, 241, ${lineAlpha})`;
+            sCtx.lineWidth = 0.75;
+            sCtx.beginPath();
+            sCtx.moveTo(particles[i].x, particles[i].y);
+            sCtx.lineTo(particles[j].x, particles[j].y);
+            sCtx.stroke();
+          }
+        }
+      }
+
+      // Draw and move points
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0) p.x = sWidth;
+        if (p.x > sWidth) p.x = 0;
+        if (p.y < 0) p.y = sHeight;
+        if (p.y > sHeight) p.y = 0;
+
+        sCtx.beginPath();
+        sCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        sCtx.fillStyle = p.color;
+        sCtx.globalAlpha = p.alpha;
+        sCtx.shadowBlur = 8;
+        sCtx.shadowColor = p.color;
+        sCtx.fill();
+        sCtx.shadowBlur = 0;
+        sCtx.globalAlpha = 1;
+      }
+
+      splashParticleRaf = requestAnimationFrame(renderParticles);
+    }
+
+    splashParticleRaf = requestAnimationFrame(renderParticles);
+  }
+
   function onSingleFrameLoaded() {
     loadedCount++;
     const pct = Math.floor((loadedCount / TOTAL_FRAMES) * 100);
 
     if (loaderBar) loaderBar.style.width = pct + '%';
     if (loaderPct) loaderPct.textContent = pct + '%';
-    if (loaderCount) loaderCount.textContent = `${loadedCount} / ${TOTAL_FRAMES} frames`;
+    if (loaderCount) loaderCount.textContent = `${loadedCount} / ${TOTAL_FRAMES} FRAMES DECODED`;
+    updateSplashStatus(pct);
 
     if (loadedCount >= TOTAL_FRAMES) {
       dismissPreloader();
@@ -160,19 +270,38 @@
   }
 
   function dismissPreloader() {
+    if (isPreloaderDismissed) return;
+    isPreloaderDismissed = true;
+
+    updateSplashStatus(100);
+    if (loaderBar) loaderBar.style.width = '100%';
+    if (loaderPct) loaderPct.textContent = '100%';
+
     setTimeout(() => {
       if (preloader) {
         preloader.classList.add('fade-out');
         setTimeout(() => {
           preloader.style.display = 'none';
-        }, 600);
+          if (splashParticleRaf) {
+            cancelAnimationFrame(splashParticleRaf);
+            splashParticleRaf = null;
+          }
+        }, 700);
       }
-    }, 250);
+    }, 280);
+  }
+
+  // Quick skip button
+  if (splashSkipBtn) {
+    splashSkipBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      dismissPreloader();
+    });
   }
 
   // Safety fallback timeout for preloader
   setTimeout(() => {
-    if (preloader && !preloader.classList.contains('fade-out')) {
+    if (preloader && !isPreloaderDismissed) {
       dismissPreloader();
     }
   }, 3500);
@@ -562,6 +691,226 @@
     });
   }
 
+  // --- MODERN IMAGE PREVIEW LIGHTBOX MODAL ---
+  function initImagePreviewModal() {
+    const modal = document.getElementById('image-preview-modal');
+    if (!modal) return;
+
+    const backdrop = document.getElementById('preview-backdrop');
+    const closeBtn = document.getElementById('preview-close-btn');
+    const prevBtn = document.getElementById('preview-prev');
+    const nextBtn = document.getElementById('preview-next');
+    const previewImg = document.getElementById('preview-img');
+    const previewTitle = document.getElementById('preview-title');
+    const previewCounter = document.getElementById('preview-counter');
+    const previewCaption = document.getElementById('preview-caption');
+    const previewOpenLink = document.getElementById('preview-open-link');
+    const previewThumbs = document.getElementById('preview-thumbs');
+    const previewSpinner = document.getElementById('preview-spinner');
+    const stage = document.getElementById('preview-stage');
+
+    let currentImages = [];
+    let currentIndex = 0;
+    let currentProjectTitle = '';
+    let isOpen = false;
+
+    function renderSlide(index) {
+      if (!currentImages.length) return;
+      if (index < 0) index = currentImages.length - 1;
+      if (index >= currentImages.length) index = 0;
+      currentIndex = index;
+
+      const item = currentImages[currentIndex];
+
+      // Counter
+      if (previewCounter) {
+        previewCounter.textContent = `${currentIndex + 1} / ${currentImages.length}`;
+      }
+
+      // Title & Caption
+      if (previewTitle) {
+        previewTitle.textContent = currentProjectTitle || 'Project Preview';
+      }
+      if (previewCaption) {
+        previewCaption.textContent = item.alt || currentProjectTitle || '';
+      }
+
+      // Open Link
+      if (previewOpenLink) {
+        previewOpenLink.href = item.src;
+      }
+
+      // Nav buttons visibility
+      if (prevBtn && nextBtn) {
+        if (currentImages.length <= 1) {
+          prevBtn.classList.add('hidden');
+          nextBtn.classList.add('hidden');
+        } else {
+          prevBtn.classList.remove('hidden');
+          nextBtn.classList.remove('hidden');
+        }
+      }
+
+      // Image loading state
+      if (previewImg) {
+        previewImg.classList.add('loading');
+        if (previewSpinner) previewSpinner.classList.add('active');
+
+        const tempImg = new Image();
+        tempImg.onload = () => {
+          previewImg.src = item.src;
+          previewImg.alt = item.alt || currentProjectTitle;
+          previewImg.classList.remove('loading');
+          if (previewSpinner) previewSpinner.classList.remove('active');
+        };
+        tempImg.onerror = () => {
+          previewImg.src = item.src;
+          previewImg.classList.remove('loading');
+          if (previewSpinner) previewSpinner.classList.remove('active');
+        };
+        tempImg.src = item.src;
+      }
+
+      // Update thumbnails
+      if (previewThumbs) {
+        const thumbItems = previewThumbs.querySelectorAll('.preview-thumb-item');
+        thumbItems.forEach((thumb, i) => {
+          thumb.classList.toggle('active', i === currentIndex);
+        });
+      }
+    }
+
+    function openModal(images, startIndex, projectTitle) {
+      if (!images || !images.length) return;
+      currentImages = images;
+      currentIndex = startIndex >= 0 && startIndex < images.length ? startIndex : 0;
+      currentProjectTitle = projectTitle || 'Project Preview';
+
+      // Build thumbnails
+      if (previewThumbs) {
+        previewThumbs.innerHTML = '';
+        if (currentImages.length > 1) {
+          previewThumbs.style.display = 'flex';
+          currentImages.forEach((img, i) => {
+            const thumb = document.createElement('button');
+            thumb.className = `preview-thumb-item ${i === currentIndex ? 'active' : ''}`;
+            thumb.type = 'button';
+            thumb.setAttribute('aria-label', `Gambar ${i + 1}`);
+            thumb.innerHTML = `<img src="${img.src}" alt="Thumbnail ${i + 1}" loading="lazy">`;
+            thumb.addEventListener('click', (e) => {
+              e.stopPropagation();
+              renderSlide(i);
+            });
+            previewThumbs.appendChild(thumb);
+          });
+        } else {
+          previewThumbs.style.display = 'none';
+        }
+      }
+
+      renderSlide(currentIndex);
+
+      modal.classList.add('active');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      isOpen = true;
+    }
+
+    function closeModal() {
+      if (!isOpen) return;
+      modal.classList.remove('active');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      isOpen = false;
+      if (previewImg) {
+        previewImg.src = '';
+      }
+    }
+
+    // Attach click triggers to all project media wraps
+    const projectCards = document.querySelectorAll('.project-card');
+    projectCards.forEach(card => {
+      const mediaWrap = card.querySelector('.project-media-wrap');
+      if (!mediaWrap) return;
+
+      const titleEl = card.querySelector('.project-title');
+      const projectTitle = titleEl ? titleEl.textContent.trim() : 'Project Preview';
+
+      mediaWrap.addEventListener('click', (e) => {
+        // Ignore clicks on gallery prev/next buttons or dots
+        if (e.target.closest('.gallery-btn') || e.target.closest('.gallery-dot') || e.target.closest('.gallery-dots')) {
+          return;
+        }
+
+        e.preventDefault();
+
+        // Collect all images in this card
+        const slideImgs = Array.from(mediaWrap.querySelectorAll('.gallery-slide, .project-img'));
+        if (!slideImgs.length) return;
+
+        const images = slideImgs.map(img => ({
+          src: img.getAttribute('src'),
+          alt: img.getAttribute('alt') || projectTitle
+        }));
+
+        // Determine current active slide
+        let activeIdx = slideImgs.findIndex(img => img.classList.contains('active'));
+        if (activeIdx < 0) activeIdx = 0;
+
+        openModal(images, activeIdx, projectTitle);
+      });
+    });
+
+    // Close events
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (backdrop) backdrop.addEventListener('click', closeModal);
+
+    // Prev / Next events
+    if (prevBtn) {
+      prevBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        renderSlide(currentIndex - 1);
+      });
+    }
+    if (nextBtn) {
+      nextBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        renderSlide(currentIndex + 1);
+      });
+    }
+
+    // Keyboard navigation
+    window.addEventListener('keydown', (e) => {
+      if (!isOpen) return;
+      if (e.key === 'Escape') {
+        closeModal();
+      } else if (e.key === 'ArrowRight') {
+        renderSlide(currentIndex + 1);
+      } else if (e.key === 'ArrowLeft') {
+        renderSlide(currentIndex - 1);
+      }
+    });
+
+    // Touch Swipe on Stage
+    if (stage) {
+      let touchStartX = 0;
+      let touchEndX = 0;
+
+      stage.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+      }, { passive: true });
+
+      stage.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        const diff = touchStartX - touchEndX;
+        if (Math.abs(diff) > 40) {
+          if (diff > 0) renderSlide(currentIndex + 1);
+          else renderSlide(currentIndex - 1);
+        }
+      }, { passive: true });
+    }
+  }
+
   // --- REACTBITS SPLASH CURSOR (WebGL Fluid Animation) ---
   // Requested: "buat untuk cursornya menjadi https://reactbits.dev/animations/splash-cursor"
   function initSplashCursor() {
@@ -601,6 +950,7 @@
   }
 
   // --- INITIALIZE ---
+  initSplashParticles();
   preloadImages();
   resizeCanvas();
   requestAnimationFrame(tick);
@@ -609,6 +959,7 @@
   init3DTilt();
   initMarqueeHover();
   initProjectGalleries();
+  initImagePreviewModal();
   initSplashCursor();
 
 })();
